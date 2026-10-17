@@ -48,7 +48,8 @@ async function boot(): Promise<Handler> {
     setStatus('locked');
     throw new Error('La demo ya está abierta en otra pestaña de este navegador. Ciérrala para usarla aquí.');
   }
-  client = new PGlite(`idb://${DB_NAME}`);
+  // relaxedDurability: guarda en IndexedDB en segundo plano (mucho más rápido al crear los datos demo).
+  client = new PGlite(`idb://${DB_NAME}`, { relaxedDurability: true });
   const db = drizzle(client, { schema }) as unknown as DB;
   await migrate(db);
   const deps = {
