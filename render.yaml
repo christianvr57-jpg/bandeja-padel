@@ -1,0 +1,39 @@
+# Blueprint de Render: crea la web (Node) y la base de datos PostgreSQL gratuitas.
+# Uso: botón "Deploy to Render" del README o Render → New → Blueprint → este repositorio.
+services:
+  - type: web
+    name: bandeja-padel
+    runtime: node
+    plan: free
+    region: frankfurt
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: bandeja-db
+          property: connectionString
+      # Crea el club y los torneos de demostración si la base de datos está vacía.
+      - key: SEED_DEMO
+        value: "true"
+      # Opcional: SMTP para enviar los emails de confirmación (Gmail, Brevo, Resend…).
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: MAIL_FROM
+        sync: false
+
+databases:
+  - name: bandeja-db
+    plan: free
+    region: frankfurt
+    databaseName: bandeja
+    user: bandeja
