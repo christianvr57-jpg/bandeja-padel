@@ -18,7 +18,7 @@ Plataforma web para que los clubes de pádel de España creen y gestionen **torn
 - **Torneos**: nombre, fechas, sede y dirección (enlace a Maps), pistas, precio, fecha límite de inscripción, reglamento, imagen de portada, contacto, zona horaria (península/Canarias). Borrador → publicado → finalizado.
 - **Categorías**: masculina, femenina o mixta; niveles 1ª–5ª, iniciación/medio/avanzado u open; límite de parejas.
 - **Formatos**: eliminatoria directa, eliminatoria con **consolación**, **fase de grupos + eliminatoria** y **americano** por parejas (liguilla por juegos). Partidos al mejor de 3 sets, con super tie-break, a un set o por juegos.
-- **Inscritos**: listado por categoría con DNI/teléfono/email, **lista de espera automática**, marcar pagado, editar, dar de baja, mover de categoría, añadir parejas a mano, notas internas y **exportación a Excel (CSV)**.
+- **Inscritos**: listado por categoría con DNI/teléfono/email, **lista de espera automática**, marcar pagado, editar, dar de baja, mover de categoría, añadir parejas a mano, notas internas y **exportación a Excel (CSV)**. Si una pareja se retira después del sorteo, se puede **sustituir** por la primera de la lista de espera conservando su sitio en el cuadro.
 - **Cuadros**: sorteo automático con **cabezas de serie** opcionales, **byes** para las mejores parejas cuando no cuadra la potencia de 2, y **ajuste manual** (intercambiar posiciones o mover parejas entre grupos) mientras no haya resultados.
 - **Horarios**: asignar pista y hora a mano o **programación automática** por franjas, con **detección de solapes** (misma pista, misma pareja, mismo jugador inscrito en dos categorías, o partido antes que su previo). Vista lista y vista por pistas.
 - **Resultados** por sets con validación (6-4, 7-5, 7-6, super tie-break a 10 con diferencia de 2, W.O., retirada) y **avance automático** en el cuadro, consolación y clasificaciones de grupo.
@@ -136,6 +136,7 @@ Define en el servicio `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` y `MAIL
 | Variable | Descripción |
 | --- | --- |
 | `DATABASE_URL` | PostgreSQL. Sin ella se usa PGlite en `./.data` (solo para pruebas). |
+| `DATABASE_POOL_MAX` | Conexiones máximas del pool (por defecto 5). |
 | `PUBLIC_URL` | URL pública para los enlaces de los emails (en Render se detecta sola). |
 | `SEED_DEMO` | `false` para no crear datos de demostración. |
 | `SMTP_*`, `MAIL_FROM` | Envío de emails. |
@@ -150,7 +151,7 @@ Define en el servicio `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` y `MAIL
 ---
 
 ## Tests
-`npm test` ejecuta 80+ tests:
+`npm test` ejecuta 83 tests:
 - **Cuadros**: orden de cabezas de serie, byes (sin bye contra bye, siempre para las cabezas de serie), avance de rondas, propagación al corregir resultados, consolación (incluido el caso de parejas exentas), grupos en serpiente, cruces de grupos sin enfrentar a parejas del mismo grupo, americano, ajuste manual.
 - **Marcadores** (sets, super tie-break, W.O., retirada) y **clasificaciones** (enfrentamiento directo, diferencias).
 - **Validación** de DNI/NIE, teléfonos y emails.
@@ -166,11 +167,10 @@ Define en el servicio `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` y `MAIL
 4. **Recuperación de contraseña** y verificación del email del club; varios usuarios por club con roles.
 5. **Previsualización en WhatsApp** (etiquetas Open Graph por torneo) con renderizado en servidor de la página pública.
 6. **Americano individual** (rotación de parejas) además del americano por parejas; cuadros de 3º y 4º puesto; formato «punto de oro» configurable.
-7. **Sustituir una pareja retirada** por la primera de la lista de espera después de generar el cuadro.
-8. Exportar a **.xlsx** nativo y **PDF imprimible** de cuadros y horarios.
-9. Vista de **parrilla por pistas con arrastrar y soltar**, y franjas no disponibles por pista.
-10. **CI con GitHub Actions** (tests en cada push y despliegue automático de la demo). Requiere dar al token de `gh` el permiso `workflow`.
-11. Accesibilidad (auditoría completa con lector de pantalla) e internacionalización (catalán, euskera, gallego).
+7. Exportar a **.xlsx** nativo y **PDF imprimible** de cuadros y horarios.
+8. Vista de **parrilla por pistas con arrastrar y soltar**, y franjas no disponibles por pista.
+9. **CI con GitHub Actions** (tests en cada push y despliegue automático de la demo). Requiere dar al token de `gh` el permiso `workflow`.
+10. Accesibilidad (auditoría completa con lector de pantalla) e internacionalización (catalán, euskera, gallego).
 
 ---
 

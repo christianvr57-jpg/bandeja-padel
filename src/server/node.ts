@@ -32,7 +32,7 @@ const behindProxy = !!(env.RENDER || env.TRUST_PROXY === 'true');
 
 function createDb(): { db: DB; label: string } {
   if (env.DATABASE_URL) {
-    const pool = new pg.Pool({ connectionString: env.DATABASE_URL, max: 5 });
+    const pool = new pg.Pool({ connectionString: env.DATABASE_URL, max: Number(env.DATABASE_POOL_MAX ?? 5) });
     return { db: drizzlePg(pool, { schema }) as unknown as DB, label: 'PostgreSQL' };
   }
   mkdirSync('.data', { recursive: true });
