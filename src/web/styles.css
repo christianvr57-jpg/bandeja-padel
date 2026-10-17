@@ -1,0 +1,119 @@
+@import 'tailwindcss';
+@source '../';
+
+@theme {
+  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  /* Azul pista */
+  --color-court-50: #eef7ff;
+  --color-court-100: #d9ecff;
+  --color-court-200: #bcdfff;
+  --color-court-300: #8ecbff;
+  --color-court-400: #59adfb;
+  --color-court-500: #338bf2;
+  --color-court-600: #1d6de6;
+  --color-court-700: #1857c4;
+  --color-court-800: #133f7a;
+  --color-court-900: #0b3b5c;
+  --color-court-950: #072338;
+
+  /* Verde pelota */
+  --color-ball-100: #f3fdd6;
+  --color-ball-200: #e7fbb0;
+  --color-ball-300: #d6f57c;
+  --color-ball-400: #c6f432;
+  --color-ball-500: #a8d61a;
+  --color-ball-600: #84ab0f;
+}
+
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-slate-50 text-slate-900 antialiased;
+    font-feature-settings: 'cv11', 'ss01';
+  }
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-court-500;
+  }
+}
+
+/* Pista de pádel estilizada para portadas sin imagen */
+.court-pattern {
+  background-color: var(--color-court-900);
+  background-image:
+    linear-gradient(90deg, transparent calc(50% - 1px), rgb(255 255 255 / 0.18) calc(50% - 1px), rgb(255 255 255 / 0.18) calc(50% + 1px), transparent calc(50% + 1px)),
+    linear-gradient(0deg, transparent calc(50% - 1px), rgb(255 255 255 / 0.12) calc(50% - 1px), rgb(255 255 255 / 0.12) calc(50% + 1px), transparent calc(50% + 1px)),
+    radial-gradient(circle at 85% 20%, rgb(198 244 50 / 0.35), transparent 30%),
+    linear-gradient(135deg, var(--color-court-800), var(--color-court-950));
+}
+
+.scrollbar-none {
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+/* Cuadro de eliminatoria: columnas por ronda con conectores */
+.bracket-col {
+  display: flex;
+  flex-direction: column;
+}
+.bracket-round {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  justify-content: space-around;
+}
+.bracket-cell {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1 1 0;
+  padding: 6px 14px;
+}
+.bracket-in {
+  position: relative;
+  width: 100%;
+}
+.bracket-col:not(:last-child) .bracket-cell::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 50%;
+  width: 14px;
+  border-top: 2px solid var(--color-slate-300);
+}
+.bracket-col:not(:last-child) .bracket-cell.is-top::before,
+.bracket-col:not(:last-child) .bracket-cell.is-bottom::before {
+  content: '';
+  position: absolute;
+  right: 0;
+  height: 50%;
+  border-right: 2px solid var(--color-slate-300);
+}
+.bracket-col:not(:last-child) .bracket-cell.is-top::before {
+  top: 50%;
+}
+.bracket-col:not(:last-child) .bracket-cell.is-bottom::before {
+  bottom: 50%;
+}
+.bracket-col:not(:first-child) .bracket-in::before {
+  content: '';
+  position: absolute;
+  left: -14px;
+  top: 50%;
+  width: 14px;
+  border-top: 2px solid var(--color-slate-300);
+}
+
+@media print {
+  header,
+  nav,
+  .no-print {
+    display: none !important;
+  }
+}

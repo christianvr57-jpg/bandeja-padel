@@ -81,6 +81,13 @@ export function formatDateTime(date: Date | string | number, timeZone: string): 
   }).format(new Date(date));
 }
 
+/** "sáb 13:30": día de la semana abreviado y hora. */
+export function formatWeekdayTime(date: Date | string | number, timeZone: string): string {
+  const d = new Date(date);
+  const day = new Intl.DateTimeFormat('es-ES', { timeZone, weekday: 'short' }).format(d).replace('.', '');
+  return `${day} ${formatTime(d, timeZone)}`;
+}
+
 export function formatTime(date: Date | string | number, timeZone: string): string {
   return new Intl.DateTimeFormat('es-ES', { timeZone, hour: '2-digit', minute: '2-digit' }).format(new Date(date));
 }
