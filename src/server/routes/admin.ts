@@ -101,7 +101,10 @@ export const adminRoutes = new Hono<AppEnv>()
         registrationOpen: tournamentOpen(t, now()),
       });
     }
-    return c.json(items);
+    // Primero los que están en juego o por venir; los finalizados al final.
+    const today = now().toISOString().slice(0, 10);
+    const active = items.filter((i) => i.status !== 'finished' && i.endDate >= today).sort((a, b) => a.startDate.localeCompare(b.startDate));
+    return c.json([...active, ...items.filter((i) => !active.includes(i))]);
   })
   .post('/tournaments', async (c) => {
     const club = currentClub(c);

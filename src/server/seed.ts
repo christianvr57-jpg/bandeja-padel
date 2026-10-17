@@ -261,7 +261,7 @@ export async function seedDemo(deps: AppDeps): Promise<void> {
       status: 'published',
       matchDurationMin: 90,
     },
-    ['Pista Central', 'Pista 2', 'Pista 3', 'Pista 4'],
+    ['Pista Central', 'Pista 2', 'Pista 3'],
   );
   const openCats = [
     await createCategoryWithPairs(deps, open, people, rng, { gender: 'M', level: '3ª', maxPairs: 16, format: 'consolation', matchFormat: 'best_of_3_super_tb', pairs: 12, seeds: 4 }, 0),
@@ -279,9 +279,12 @@ export async function seedDemo(deps: AppDeps): Promise<void> {
     restMin: 30,
     replaceExisting: true,
   });
+  // Resultados hasta "ahora" (o al menos hasta media mañana de hoy, para que la demo
+  // muestre un torneo avanzado a cualquier hora del día).
+  const until = new Date(Math.max(now.getTime(), at(today, '12:30').getTime()));
   for (const cat of openCats) {
     const [fresh] = await db.select().from(categories).where(eq(categories.id, cat.id));
-    await playMatches(deps, fresh!, rng, { until: now, durationMin: open.matchDurationMin });
+    await playMatches(deps, fresh!, rng, { until, durationMin: open.matchDurationMin });
   }
 
   // 2) Torneo con inscripciones abiertas (una categoría llena con lista de espera).
