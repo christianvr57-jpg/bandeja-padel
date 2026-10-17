@@ -362,6 +362,23 @@ describe('cuadros, resultados y control de acceso', () => {
     expect(final.conflicts.filter((c) => c.type !== 'order')).toEqual([]);
   });
 
+  it('sustituye en el cuadro a una pareja retirada por la primera de la lista de espera', async () => {
+    const t2 = await publishedTournament(api, token, { maxPairs: 4 });
+    for (let i = 0; i < 5; i++) await register(api, t2.slug, t2.categoryId);
+    expect((await api.call('POST', `/admin/categories/${t2.categoryId}/draw`, {}, { token })).status).toBe(201);
+    const regs = (await api.call('GET', `/admin/tournaments/${t2.id}/registrations`, undefined, { token })).json as AdminRegistration[];
+    const out = regs.find((r) => r.inDraw)!;
+    const waiting = regs.find((r) => r.status === 'waitlist')!;
+    const r = await api.call('POST', `/admin/registrations/${out.id}/replace`, { replacementId: waiting.id }, { token });
+    expect(r.status).toBe(200);
+    const after = (await api.call('GET', `/admin/tournaments/${t2.id}/registrations`, undefined, { token })).json as AdminRegistration[];
+    expect(after.find((x) => x.id === out.id)).toMatchObject({ status: 'cancelled', inDraw: false });
+    expect(after.find((x) => x.id === waiting.id)).toMatchObject({ status: 'confirmed', inDraw: true });
+    expect(api.sent.at(-1)!.kind).toBe('waitlist_promoted');
+    // Otro club no puede hacerlo.
+    expect((await api.call('POST', `/admin/registrations/${waiting.id}/replace`, { replacementId: out.id }, { token: other })).status).toBe(404);
+  });
+
   it('permite ajustar el sorteo a mano solo sin resultados', async () => {
     const cat = (await competition()).categories[0]!;
     const r1 = cat.matches.filter((m) => m.phase === 'main' && m.round === 1);

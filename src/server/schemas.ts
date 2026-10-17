@@ -175,3 +175,7 @@ export const autoScheduleSchema = z.object({
   categoryIds: z.array(uuidSchema).optional(),
   replaceExisting: z.boolean().default(false),
 });
+
+export const replaceSchema = z.object({
+  replacementId: uuidSchema,
+});

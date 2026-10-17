@@ -97,7 +97,9 @@ function CategoryCapacity({ cat }: { cat: CategoryView }) {
         <span>
           {cat.confirmedCount}/{cat.maxPairs} parejas
         </span>
-        {full ? (
+        {cat.drawGenerated ? (
+          <span className="font-medium text-slate-500">Inscripción cerrada</span>
+        ) : full ? (
           <span className="font-medium text-amber-700">Completa{cat.waitlistCount ? ` · ${cat.waitlistCount} en espera` : ''}</span>
         ) : (
           <span className="font-medium text-emerald-700">

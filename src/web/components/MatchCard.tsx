@@ -1,6 +1,6 @@
 import { Check, Clock, MapPin } from 'lucide-react';
 import type { CourtView, MatchView, PairView, SlotView } from '@shared/api';
-import { formatDateTime, formatWeekdayTime } from '@shared/time';
+import { formatWeekdayTime } from '@shared/time';
 import { cx } from './ui';
 
 export function SlotLine({
@@ -131,17 +131,17 @@ export function MatchCard({
         className,
       )}
     >
-      <div className="flex items-center gap-2 border-b border-slate-100 bg-slate-50/80 px-3 py-1 text-[11px] text-slate-500">
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 border-b border-slate-100 bg-slate-50/80 px-3 py-1 text-[11px] text-slate-500">
         <span className="font-semibold text-slate-600">#{match.number}</span>
         {!(compact && match.phase !== 'group' && match.phase !== 'league') && (
-          <span className="truncate">{categoryLabel ? `${categoryLabel} · ${match.roundLabel}` : match.roundLabel}</span>
+          <span className="min-w-0 truncate">{categoryLabel ? `${categoryLabel} · ${match.roundLabel}` : match.roundLabel}</span>
         )}
         {walkover && <span className="rounded bg-amber-100 px-1 font-semibold text-amber-800">W.O.</span>}
         {match.outcome === 'retired' && <span className="rounded bg-amber-100 px-1 font-semibold text-amber-800">Ret.</span>}
         {showSchedule && match.scheduledAt && (
           <span className="ml-auto inline-flex shrink-0 items-center gap-1">
             <Clock className="size-3" />
-            {compact ? formatWeekdayTime(match.scheduledAt, timezone) : formatDateTime(match.scheduledAt, timezone)}
+            {formatWeekdayTime(match.scheduledAt, timezone)}
             {court && (
               <>
                 <MapPin className="ml-1 size-3" />

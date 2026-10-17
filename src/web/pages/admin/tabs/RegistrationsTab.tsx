@@ -5,6 +5,7 @@ import {
   MoreHorizontal,
   Pencil,
   Phone,
+  Repeat,
   Search,
   UserMinus,
   UserPlus,
@@ -187,18 +188,77 @@ function MoveDialog({ t, reg, onClose }: { t: AdminTournament; reg: AdminRegistr
   );
 }
 
+function ReplaceDialog({
+  t,
+  reg,
+  candidates,
+  onClose,
+}: {
+  t: AdminTournament;
+  reg: AdminRegistration;
+  candidates: AdminRegistration[];
+  onClose: () => void;
+}) {
+  const [target, setTarget] = useState(candidates[0]?.id ?? '');
+  const replace = useAdminAction(t.id, () => api(`/admin/registrations/${reg.id}/replace`, { method: 'POST', body: { replacementId: target } }), {
+    success: 'Pareja sustituida en el cuadro',
+    onSuccess: onClose,
+  });
+  const names = (r: AdminRegistration) => r.players.map((p) => p.fullName).join(' / ');
+  return (
+    <Modal
+      open
+      onClose={onClose}
+      title="Sustituir pareja en el cuadro"
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button disabled={!target} loading={replace.isPending} onClick={() => replace.mutate()}>
+            Sustituir
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-4 text-sm">
+        <p className="text-slate-700">
+          <strong>{names(reg)}</strong> se retira: quedará dada de baja y la pareja elegida ocupará su lugar en el cuadro (con sus mismos partidos y
+          horarios). Ambas parejas recibirán un email.
+        </p>
+        {candidates.length ? (
+          <Field label="Pareja que entra" htmlFor="rp-target">
+            <Select id="rp-target" value={target} onChange={(e) => setTarget(e.target.value)}>
+              {candidates.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.status === 'waitlist' ? `Espera nº ${c.waitlistPosition}` : 'Inscrita fuera del cuadro'} · {names(c)}
+                </option>
+              ))}
+            </Select>
+          </Field>
+        ) : (
+          <Alert tone="warning">No hay parejas en lista de espera en esta categoría. Puedes añadir una con «Añadir pareja» o marcar W.O. en sus partidos.</Alert>
+        )}
+        {replace.error && <Alert tone="error">{replace.error.message}</Alert>}
+      </div>
+    </Modal>
+  );
+}
+
 function RegistrationRow({
   t,
   reg,
   index,
   onEdit,
   onMove,
+  onReplace,
 }: {
   t: AdminTournament;
   reg: AdminRegistration;
   index: number;
   onEdit: () => void;
   onMove: () => void;
+  onReplace: () => void;
 }) {
   const { confirm } = useFeedback();
   const [menu, setMenu] = useState(false);
@@ -279,6 +339,11 @@ function RegistrationRow({
                     >
                       <ArrowRightLeft className="size-4" /> Mover de categoría
                     </button>
+                    {reg.inDraw && (
+                      <button className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-slate-50" onClick={() => (setMenu(false), onReplace())}>
+                        <Repeat className="size-4" /> Sustituir (se retira)
+                      </button>
+                    )}
                     <button
                       className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-red-700 hover:bg-red-50 disabled:opacity-40"
                       disabled={reg.inDraw}
@@ -317,6 +382,7 @@ export default function RegistrationsTab({ t }: { t: AdminTournament }) {
   const [search, setSearch] = useState('');
   const [editing, setEditing] = useState<AdminRegistration | 'new' | null>(null);
   const [moving, setMoving] = useState<AdminRegistration | null>(null);
+  const [replacing, setReplacing] = useState<AdminRegistration | null>(null);
   const [exporting, setExporting] = useState(false);
 
   const list = useMemo(() => {
@@ -402,13 +468,31 @@ export default function RegistrationsTab({ t }: { t: AdminTournament }) {
       ) : (
         <div className="space-y-2">
           {list.map((r, i) => (
-            <RegistrationRow key={r.id} t={t} reg={r} index={i + 1} onEdit={() => setEditing(r)} onMove={() => setMoving(r)} />
+            <RegistrationRow
+              key={r.id}
+              t={t}
+              reg={r}
+              index={i + 1}
+              onEdit={() => setEditing(r)}
+              onMove={() => setMoving(r)}
+              onReplace={() => setReplacing(r)}
+            />
           ))}
         </div>
       )}
 
       {editing && <RegistrationDialog t={t} reg={editing === 'new' ? null : editing} onClose={() => setEditing(null)} />}
       {moving && <MoveDialog t={t} reg={moving} onClose={() => setMoving(null)} />}
+      {replacing && (
+        <ReplaceDialog
+          t={t}
+          reg={replacing}
+          candidates={all
+            .filter((r) => r.categoryId === replacing.categoryId && !r.inDraw && r.status !== 'cancelled')
+            .sort((a, b) => (a.status === b.status ? (a.waitlistPosition ?? 0) - (b.waitlistPosition ?? 0) : a.status === 'waitlist' ? -1 : 1))}
+          onClose={() => setReplacing(null)}
+        />
+      )}
     </div>
   );
 }

@@ -3,12 +3,13 @@ import { PRIVACY_VERSION } from '../../shared/api';
 import { categoryLabel } from '../../shared/labels';
 import type { AppDeps } from '../context';
 import type { DB } from '../db';
-import { categories, clubs, players, registrations } from '../db/schema';
+import { replaceEntry } from '../../shared/draw/generate';
+import { categories, clubs, matches, players, registrations } from '../db/schema';
 import { cancelledEmail, promotedEmail, registrationEmail, type EmailContext } from '../emails';
 import { randomToken, sha256Hex } from '../lib/crypto';
 import { badRequest, conflict, notFound } from '../lib/http';
 import type { CategoryRow, RegistrationRow, TournamentRow } from './access';
-import { isInDraw } from './draws';
+import { isInDraw, loadMatches, rowsToDef, syncCategory } from './draws';
 
 export interface PlayerInput {
   fullName: string;
@@ -213,7 +214,7 @@ export async function cancelRegistration(
   if (await isInDraw(deps.db, category, registration.id)) {
     throw conflict(
       byClub
-        ? 'La pareja ya está en el cuadro. Si se retira, marca W.O. en sus partidos o borra el cuadro y vuelve a sortear.'
+        ? 'La pareja ya está en el cuadro. Si se retira, usa «Sustituir» para que entre la primera de la lista de espera, o marca W.O. en sus partidos.'
         : 'El cuadro ya está hecho: para darte de baja contacta con el club organizador.',
     );
   }
@@ -361,4 +362,60 @@ export async function findByToken(db: DB, token: string) {
   const hash = await sha256Hex(token);
   const [reg] = await db.select().from(registrations).where(eq(registrations.tokenHash, hash));
   return reg ?? null;
+}
+
+/**
+ * Sustituye en el cuadro a una pareja que se retira por otra de la misma
+ * categoría (normalmente la primera de la lista de espera). Solo si la pareja
+ * retirada aún no ha jugado ningún partido.
+ */
+export async function replaceInDraw(
+  deps: AppDeps,
+  ctx: { registration: RegistrationRow; tournament: TournamentRow; category: CategoryRow },
+  replacementId: string,
+): Promise<void> {
+  const { registration, tournament, category } = ctx;
+  if (!(await isInDraw(deps.db, category, registration.id))) throw badRequest('Esta pareja no está en el cuadro.');
+  const [replacement] = await deps.db
+    .select()
+    .from(registrations)
+    .where(and(eq(registrations.id, replacementId), eq(registrations.categoryId, category.id)));
+  if (!replacement || replacement.status === 'cancelled') throw badRequest('La pareja sustituta no es válida.');
+  if (await isInDraw(deps.db, category, replacement.id)) throw badRequest('La pareja sustituta ya está en el cuadro.');
+
+  const rows = await loadMatches(deps.db, category.id);
+  if (rows.some((r) => r.outcome && (r.pairAId === registration.id || r.pairBId === registration.id))) {
+    throw conflict('Esta pareja ya ha jugado algún partido: marca W.O. en sus partidos pendientes en lugar de sustituirla.');
+  }
+  const next = replaceEntry(rowsToDef(category, rows), registration.id, replacement.id);
+  const byKey = new Map(next.matches.map((m) => [m.key, m]));
+  const emailCtx = await emailContext(deps, tournament, category, registration.id, null);
+  const newToken = replacement.status === 'waitlist' && replacement.tokenHash ? randomToken() : null;
+
+  await deps.db.transaction(async (tx) => {
+    for (const row of rows) {
+      const m = byKey.get(row.key)!;
+      if (JSON.stringify(m.a) !== JSON.stringify(row.sourceA) || JSON.stringify(m.b) !== JSON.stringify(row.sourceB)) {
+        await tx.update(matches).set({ sourceA: m.a, sourceB: m.b, updatedAt: deps.now() }).where(eq(matches.id, row.id));
+      }
+    }
+    await tx.update(categories).set({ drawGroups: next.groups }).where(eq(categories.id, category.id));
+    await tx
+      .update(registrations)
+      .set({ status: 'cancelled', cancelledAt: deps.now(), updatedAt: deps.now() })
+      .where(eq(registrations.id, registration.id));
+    await tx.update(players).set({ active: false }).where(eq(players.registrationId, registration.id));
+    await tx
+      .update(registrations)
+      .set({
+        status: 'confirmed',
+        seed: registration.seed,
+        updatedAt: deps.now(),
+        ...(newToken ? { tokenHash: await sha256Hex(newToken) } : {}),
+      })
+      .where(eq(registrations.id, replacement.id));
+  });
+  await syncCategory(deps.db, { ...category, drawGroups: next.groups });
+  await deps.mailer.send(deps.db, cancelledEmail(emailCtx, true));
+  if (replacement.status === 'waitlist') await notifyPromoted(deps, tournament, category, [{ id: replacement.id, token: newToken }]);
 }

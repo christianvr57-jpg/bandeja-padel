@@ -11,6 +11,7 @@ import {
   categorySchema,
   clubRegistrationSchema,
   generateDrawSchema,
+  replaceSchema,
   resultSchema,
   scheduleSchema,
   swapSchema,
@@ -30,6 +31,7 @@ import {
   createRegistration,
   fillFromWaitlist,
   moveRegistration,
+  replaceInDraw,
   setSeed,
   updateRegistrationPlayers,
 } from '../services/registrations';
@@ -251,6 +253,12 @@ export const adminRoutes = new Hono<AppEnv>()
     if (body.categoryId && body.categoryId !== ctx.registration.categoryId) {
       await moveRegistration(c.var.deps, ctx, body.categoryId);
     }
+    return c.json({ ok: true });
+  })
+  .post('/registrations/:id/replace', async (c) => {
+    const ctx = await ownedRegistration(c.var.deps.db, currentClub(c).id, c.req.param('id'));
+    const { replacementId } = parse(replaceSchema, await readJson(c));
+    await replaceInDraw(c.var.deps, ctx, replacementId);
     return c.json({ ok: true });
   })
   .post('/registrations/:id/cancel', async (c) => {
