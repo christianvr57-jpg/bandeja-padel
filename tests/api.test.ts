@@ -399,8 +399,13 @@ describe('datos de demostración', () => {
     expect(await seedIfEmpty(api.deps)).toBe(false);
     const login = await api.call('POST', '/auth/login', { email: DEMO_CLUB.email, password: DEMO_CLUB.password });
     expect(login.status).toBe(200);
-    const list = (await api.call('GET', '/admin/tournaments', undefined, { token: login.json.token })).json as Array<{ status: string }>;
+    const list = (await api.call('GET', '/admin/tournaments', undefined, { token: login.json.token })).json as Array<{ id: string; status: string }>;
     expect(list.map((x) => x.status).sort()).toEqual(['draft', 'finished', 'published', 'published']);
+    // La programación automática de la demo no deja solapes ni partidos antes que sus previos.
+    for (const t of list) {
+      const comp = (await api.call('GET', `/admin/tournaments/${t.id}/competition`, undefined, { token: login.json.token })).json as AdminCompetitionView;
+      expect(comp.conflicts, t.id).toEqual([]);
+    }
     const pub = (await api.call('GET', '/public/tournaments')).json as Array<{ slug: string; name: string }>;
     expect(pub).toHaveLength(3);
     const finished = (await api.call('GET', `/public/tournaments/${pub.find((x) => x.name === 'Torneo Express')!.slug}`)).json as PublicTournamentView;

@@ -11,7 +11,7 @@ import { migrate, schema, type DB } from '@server/db';
 import { createMailer } from '@server/lib/mailer';
 import { seedDemo } from '@server/seed';
 
-const DB_NAME = 'bandeja-demo-v1';
+const DB_NAME = 'bandeja-demo-v2';
 
 type Handler = (req: Request) => Promise<Response>;
 let ready: Promise<Handler> | null = null;

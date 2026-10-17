@@ -138,10 +138,21 @@ export function autoSchedule(
     end.set(f.id, e);
   }
 
-  const sorted = [...matches].sort((x, y) => x.priority - y.priority);
+  const pending = [...matches].sort((x, y) => x.priority - y.priority);
   const sortedWindows = [...windows].sort((x, y) => x.start - y.start);
+  const candidateIds = new Set(matches.map((m) => m.id));
+  const failed = new Set<string>();
 
-  for (const m of sorted) {
+  // Orden topológico: un partido solo se programa cuando ya lo están sus previos
+  // (p. ej. la consolación de una pareja exenta depende de su partido de 2ª ronda).
+  while (pending.length) {
+    const idx = pending.findIndex((m) => m.after.every((p) => !candidateIds.has(p) || end.has(p) || failed.has(p)));
+    const m = pending.splice(idx >= 0 ? idx : 0, 1)[0]!;
+    if (m.after.some((p) => failed.has(p))) {
+      failed.add(m.id);
+      unscheduled.push(m.id);
+      continue;
+    }
     const dur = m.durationMin * 60_000;
     const keys = [...m.pairIds, ...m.playerKeys.map((p) => `p:${p}`)];
     let earliest = 0;
@@ -163,7 +174,10 @@ export function autoSchedule(
       }
       if (done) break;
     }
-    if (!done) unscheduled.push(m.id);
+    if (!done) {
+      failed.add(m.id);
+      unscheduled.push(m.id);
+    }
   }
   return { assigned, unscheduled };
 }

@@ -1,4 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import { generateDraw } from '@shared/draw/generate';
+import { seededRng } from '@shared/draw/random';
+import { prerequisitesOf, resolveDraw } from '@shared/draw/resolve';
 import { computeStandings } from '@shared/draw/standings';
 import type { MatchResult } from '@shared/draw/types';
 import { autoSchedule, findScheduleConflicts, type ScheduleItem } from '@shared/schedule';
@@ -131,6 +134,35 @@ describe('solapes de horario', () => {
       after: id === 'f' ? ['s1', 's2'] : [],
     }));
     expect(findScheduleConflicts(items)).toEqual([]);
+  });
+
+  it('programa la consolación después de los partidos de los que depende (también con byes)', () => {
+    for (const n of [5, 6, 11, 12]) {
+      const def = generateDraw('consolation', Array.from({ length: n }, (_, i) => ({ id: `p${i}`, seed: i < 2 ? i + 1 : null })), {}, seededRng(n));
+      const resolved = resolveDraw(def, new Map(), { matchFormat: 'best_of_3', ranking: 'standard' });
+      const playable = def.matches.filter((m) => resolved.matches.get(m.key)!.status !== 'bye');
+      const ids = new Set(playable.map((m) => m.key));
+      const prio = (m: (typeof def.matches)[number]) => 100 + m.round * 10 + (m.phase === 'consolation' ? 5 : 0);
+      const after = (m: (typeof def.matches)[number]) => prerequisitesOf(def, m).filter((k) => ids.has(k));
+      const res = autoSchedule(
+        playable.map((m) => ({ id: m.key, durationMin: 60, pairIds: [], playerKeys: [], after: after(m), priority: prio(m) })),
+        [],
+        { courtIds: ['c1', 'c2', 'c3'], windows: [{ start: t(9), end: t(23) }], slotMin: 30, restMin: 0 },
+      );
+      expect(res.unscheduled, `n=${n}`).toEqual([]);
+      const conflicts = findScheduleConflicts(
+        playable.map((m) => ({
+          id: m.key,
+          start: res.assigned.get(m.key)!.start,
+          durationMin: 60,
+          courtId: res.assigned.get(m.key)!.courtId,
+          pairIds: [],
+          playerKeys: [],
+          after: after(m),
+        })),
+      );
+      expect(conflicts, `n=${n}`).toEqual([]);
+    }
   });
 
   it('deja sin programar lo que no cabe en las franjas', () => {
